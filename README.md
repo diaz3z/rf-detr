@@ -282,15 +282,3 @@ Your COCO annotation file does not contain segmentation polygons or masks. Use d
 ### Validation or inference cannot find the model file
 
 Train first, or pass `--model` explicitly.
-
-## GitHub upload guidance
-
-This repository now includes a `.gitignore` that excludes:
-
-- model weights
-- generated outputs
-- local datasets
-- editor files
-- Python cache files
-
-If you need to publish weights, use a separate model registry, release asset, or cloud storage link instead of committing them to Git.
