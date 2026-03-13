@@ -1,0 +1,12 @@
+pyyaml
+pillow
+matplotlib
+numpy
+opencv-python
+tqdm
+supervision
+rfdetr
+tensorboard
+albumentations==2.0.8
+torch
+torhvision
