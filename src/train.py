@@ -2,6 +2,8 @@ import argparse
 import shutil
 from pathlib import Path
 
+import torch
+
 from checkpoints import find_trained_weights, save_deployable_model
 from coco_utils import (
     has_segmentation_annotations,
@@ -19,6 +21,7 @@ from pipeline import (
     resolve_output_dir,
 )
 from utils import (
+    clear_directory,
     ensure_dir,
     ensure_file,
     resolve_device,
@@ -58,6 +61,57 @@ def resolve_resume_checkpoint(cfg: dict, output_dir: Path) -> Path | None:
     return resume_path
 
 
+def prepare_output_dir(cfg: dict, output_dir: Path) -> None:
+    exist_ok = bool(cfg.get("output", {}).get("exist_ok", False))
+    resume_cfg = cfg.get("train", {}).get("resume")
+
+    if output_dir.exists() and exist_ok:
+        if resume_cfg:
+            raise ValueError(
+                "output.exist_ok=true cannot be used together with train.resume. "
+                "Use one of: overwrite the run folder, or resume from its checkpoint."
+            )
+        clear_directory(output_dir)
+
+    output_dir.mkdir(parents=True, exist_ok=True)
+
+
+def _is_cuda_engine_runtime_error(exc: RuntimeError) -> bool:
+    message = str(exc).lower()
+    return "unable to find an engine" in message or "get was unable to find an engine" in message
+
+
+def train_with_runtime_fallback(
+    task: str,
+    model_cfg: dict,
+    class_names: list[str],
+    train_kwargs: dict,
+    logger,
+) -> None:
+    try:
+        model = build_model(task, model_cfg, class_names=class_names)
+        model.train(**train_kwargs)
+        return
+    except RuntimeError as exc:
+        if not _is_cuda_engine_runtime_error(exc):
+            raise
+
+        logger.warning("RF-DETR training hit a CUDA/cuDNN engine error: %s", exc)
+        logger.warning("Retrying once with cuDNN disabled and AMP disabled")
+
+        retry_kwargs = dict(train_kwargs)
+        retry_kwargs["amp"] = False
+        previous_cudnn_enabled = torch.backends.cudnn.enabled
+        torch.backends.cudnn.enabled = False
+
+        try:
+            retry_model_cfg = dict(model_cfg or {})
+            retry_model = build_model(task, retry_model_cfg, class_names=class_names)
+            retry_model.train(**retry_kwargs)
+        finally:
+            torch.backends.cudnn.enabled = previous_cudnn_enabled
+
+
 def run_training(config_path: str) -> Path:
     cfg = resolve_runtime_config(load_yaml(config_path), config_path)
     task = normalize_task(cfg.get("task", "detection"))
@@ -75,7 +129,7 @@ def run_training(config_path: str) -> Path:
         )
 
     output_dir = resolve_output_dir(cfg)
-    output_dir.mkdir(parents=True, exist_ok=True)
+    prepare_output_dir(cfg, output_dir)
     persisted_cfg = strip_internal_metadata(cfg)
 
     logger = setup_logging(output_dir / "train.log")
@@ -96,8 +150,6 @@ def run_training(config_path: str) -> Path:
 
     device = resolve_device(cfg["train"].get("device", cfg.get("device", "auto")))
     logger.info("Device = %s", device)
-
-    model = build_model(task, cfg.get("model"), class_names=class_names)
 
     train_kwargs = build_train_kwargs(cfg, output_dir)
     resume_checkpoint = resolve_resume_checkpoint(cfg, output_dir)
@@ -123,7 +175,13 @@ def run_training(config_path: str) -> Path:
             "Source COCO category ids are not RF-DETR ready; using normalized prepared dataset"
         )
 
-    model.train(**train_kwargs)
+    train_with_runtime_fallback(
+        task=task,
+        model_cfg=cfg.get("model") or {},
+        class_names=class_names,
+        train_kwargs=train_kwargs,
+        logger=logger,
+    )
 
     final_model_path = output_dir / cfg["output"].get(
         "final_model_name",

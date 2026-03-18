@@ -39,6 +39,7 @@ train:
 
 output:
   dir: "outputs"
-  run_name: "rfdetr_digioptics-v1"
-  final_model_name: "rf_detr_digioptics_model-v1.pth"
+  run_name: "rfdetr_digioptics-v2"
+  final_model_name: "rf_detr_digioptics_model-v2.pth"
+  exist_ok: true
   save_config_copy: true

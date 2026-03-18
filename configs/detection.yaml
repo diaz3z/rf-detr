@@ -39,4 +39,5 @@ output:
   dir: "outputs"
   run_name: "rfdetr_face_detection"
   final_model_name: "rfdetr_face_detection_model.pth"
+  exist_ok: false
   save_config_copy: true

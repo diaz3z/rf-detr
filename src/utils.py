@@ -1,6 +1,7 @@
 import json
 import logging
 import random
+import shutil
 from pathlib import Path
 from typing import Any, Optional, Union
 
@@ -65,6 +66,18 @@ def ensure_dir(path: Union[str, Path], kind: str = "directory") -> None:
     p = Path(path)
     if not p.is_dir():
         raise FileNotFoundError(f"{kind} not found: {p}")
+
+
+def clear_directory(path: Union[str, Path]) -> None:
+    directory = Path(path)
+    if not directory.exists():
+        return
+
+    for child in directory.iterdir():
+        if child.is_dir() and not child.is_symlink():
+            shutil.rmtree(child)
+        else:
+            child.unlink()
 
 
 def save_json(data: Any, path: Union[str, Path]) -> None:

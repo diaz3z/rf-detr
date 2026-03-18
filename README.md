@@ -104,6 +104,7 @@ You usually only need to update:
 - `train.device`
 - `train.resolution`
 - `output.run_name`
+- `output.exist_ok`
 
 Important notes:
 
@@ -123,6 +124,8 @@ Important notes:
 - Set `train.resume: auto` to resume from `outputs/<run_name>/checkpoint.pth` if it exists.
 - Set `train.resume: "/path/to/checkpoint.pth"` to resume from a specific checkpoint.
 - Leave `train.resume: null` to always start a fresh training run.
+- Set `output.exist_ok: true` to reuse the same run folder and clear its old contents before a fresh run.
+- `output.exist_ok: true` cannot be combined with `train.resume`, because overwrite and resume are conflicting modes.
 - For detection, use a `train.resolution` divisible by `56`.
 - Roboflow COCO exports with a parent category like `objects` are supported; the code uses only leaf categories for training.
 
@@ -271,7 +274,8 @@ model:
   class_names:
     - class_1
     - class_2
-  pretrained_weights: ../rf-detr-base.pth
+  variant: base
+  pretrained_weights: auto
 train:
   num_epochs: 5
   batch_size: 4
@@ -282,9 +286,11 @@ train:
   device: cuda
   resolution: 560
   amp: true
+  resume: null
 output:
-  dir: ../outputs
+  dir: outputs
   run_name: my_run
+  exist_ok: false
   final_model_name: rfdetr_detection_model.pth
   save_config_copy: true
 ```
@@ -293,7 +299,8 @@ output:
 
 ```yaml
 model:
-  pretrained_weights: ../rf-detr-seg-preview.pt
+  variant: nano
+  pretrained_weights: auto
   segmentation_head: true
 ```
 
