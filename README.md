@@ -96,9 +96,11 @@ Edit one of these files:
 You usually only need to update:
 
 - `dataset.root_dir`
+- `model.variant`
 - `model.class_names`
 - `train.num_epochs`
 - `train.batch_size`
+- `train.resume`
 - `train.device`
 - `train.resolution`
 - `output.run_name`
@@ -111,11 +113,41 @@ Important notes:
 - The training pipeline prepares an internal RF-DETR-ready copy of the dataset automatically and removes it after successful training.
 - COCO annotation ids are normalized to contiguous `0..N-1` during training.
 - Annotation files do not need to be named exactly `_annotations.coco.json` in the source dataset.
-- Detection uses `rf-detr-base.pth` by default.
-- Segmentation uses `rf-detr-seg-preview.pt` by default.
+- Detection variants supported in YAML: `nano`, `small`, `medium`, `large`, `xlarge`, `2xlarge`, plus legacy `base`.
+- Segmentation variants supported in YAML: `nano`, `small`, `medium`, `large`, `xlarge`, `2xlarge`, plus legacy `seg-preview`.
+- Short aliases are also accepted: `n`, `s`, `m`, `l`, `xl`, `2xl`.
+- RF-DETR class names are also accepted, for example `RFDETRSegNano` or `RFDETRMedium`.
+- Set `model.pretrained_weights: auto` or omit it to let the RF-DETR package download and use the default pretrained weights for the selected variant.
+- Use `model.pretrained_weights` only when you want to force a specific local checkpoint path.
 - The final model file already contains the metadata needed for inference.
+- Set `train.resume: auto` to resume from `outputs/<run_name>/checkpoint.pth` if it exists.
+- Set `train.resume: "/path/to/checkpoint.pth"` to resume from a specific checkpoint.
+- Leave `train.resume: null` to always start a fresh training run.
 - For detection, use a `train.resolution` divisible by `56`.
 - Roboflow COCO exports with a parent category like `objects` are supported; the code uses only leaf categories for training.
+
+Example:
+
+```yaml
+model:
+  variant: medium
+  pretrained_weights: auto
+```
+
+Resume example:
+
+```yaml
+train:
+  resume: auto
+```
+
+Custom local checkpoint example:
+
+```yaml
+model:
+  variant: medium
+  pretrained_weights: "/path/to/rfdetr-seg-medium.pt"
+```
 
 ## 6. Train
 

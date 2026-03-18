@@ -44,6 +44,20 @@ def validate_config_paths(cfg: dict) -> None:
         ensure_file(test_cfg["ann_file"], "test ann_file")
 
 
+def resolve_resume_checkpoint(cfg: dict, output_dir: Path) -> Path | None:
+    resume_cfg = cfg.get("train", {}).get("resume")
+    if not resume_cfg:
+        return None
+
+    if str(resume_cfg).lower() == "auto":
+        auto_checkpoint = output_dir / "checkpoint.pth"
+        return auto_checkpoint if auto_checkpoint.is_file() else None
+
+    resume_path = Path(resume_cfg)
+    ensure_file(resume_path, "resume checkpoint")
+    return resume_path
+
+
 def run_training(config_path: str) -> Path:
     cfg = resolve_runtime_config(load_yaml(config_path), config_path)
     task = normalize_task(cfg.get("task", "detection"))
@@ -86,14 +100,21 @@ def run_training(config_path: str) -> Path:
     model = build_model(task, cfg.get("model"), class_names=class_names)
 
     train_kwargs = build_train_kwargs(cfg, output_dir)
+    resume_checkpoint = resolve_resume_checkpoint(cfg, output_dir)
     prepared_dataset_dir = prepare_rfdetr_dataset(
         cfg["dataset"],
         output_dir / "_prepared_rfdetr_dataset",
     )
     train_kwargs = override_train_dataset_dir(train_kwargs, prepared_dataset_dir)
+    if resume_checkpoint is not None:
+        train_kwargs["resume"] = str(resume_checkpoint)
     train_kwargs["device"] = device
     logger.info("Train kwargs = %s", train_kwargs)
     logger.info("Prepared RF-DETR dataset = %s", prepared_dataset_dir)
+    if resume_checkpoint is not None:
+        logger.info("Resuming training from %s", resume_checkpoint)
+    elif str(cfg.get("train", {}).get("resume", "")).lower() == "auto":
+        logger.info("Auto resume enabled, but no checkpoint.pth was found in %s", output_dir)
 
     try:
         validate_rfdetr_category_ids(train_ann)

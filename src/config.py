@@ -7,6 +7,11 @@ from typing import Any, Dict, Optional, Union
 import yaml
 
 
+AUTO_PRETRAINED_WEIGHTS_VALUES = {"", "auto", "default", "none", "null"}
+AUTO_RESUME_VALUES = {"", "auto", "default"}
+DISABLED_RESUME_VALUES = {"none", "null", "false", "off", "0"}
+
+
 def load_yaml(path: Union[str, Path]) -> Dict[str, Any]:
     path = Path(path)
     with path.open("r", encoding="utf-8") as f:
@@ -110,8 +115,23 @@ def resolve_runtime_config(
 
     model_cfg = cfg.setdefault("model", {})
     pretrained_weights = model_cfg.get("pretrained_weights")
-    if pretrained_weights:
+    if pretrained_weights and str(pretrained_weights).strip().lower() not in AUTO_PRETRAINED_WEIGHTS_VALUES:
         model_cfg["pretrained_weights"] = _resolve_path(pretrained_weights, config_dir)
+    else:
+        model_cfg["pretrained_weights"] = None
+
+    train_cfg = cfg.setdefault("train", {})
+    resume = train_cfg.get("resume")
+    if resume is None:
+        train_cfg["resume"] = None
+    else:
+        normalized_resume = str(resume).strip().lower()
+        if normalized_resume in AUTO_RESUME_VALUES:
+            train_cfg["resume"] = "auto"
+        elif normalized_resume in DISABLED_RESUME_VALUES:
+            train_cfg["resume"] = None
+        else:
+            train_cfg["resume"] = _resolve_path(resume, project_root)
 
     cfg["_meta"] = {
         "config_path": str(config_path),

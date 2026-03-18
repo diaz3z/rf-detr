@@ -15,12 +15,13 @@ dataset:
     ann_file: "test/_annotations.coco.json"
 
 model:
+  variant: nano
   class_names:
     - scalpel
     - clamp
     - straight_scissor
     - curved_scissor
-  pretrained_weights: "../rf-detr-seg-preview.pt"
+  pretrained_weights: auto
   segmentation_head: true
 
 train:
@@ -33,6 +34,8 @@ train:
   device: cuda
   resolution: 480
   amp: true
+  # set to auto to resume from outputs/<run_name>/checkpoint.pth if it exists
+  resume: null
 
 output:
   dir: "outputs"

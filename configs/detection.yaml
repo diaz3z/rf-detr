@@ -15,10 +15,11 @@ dataset:
     ann_file: "test/_annotations.coco.json"
 
 model:
+  variant: base
   class_names:
     - Face Detection - v1 V1
     - face
-  pretrained_weights: "../rf-detr-base.pth"
+  pretrained_weights: auto
 
 train:
   num_epochs: 5
@@ -31,6 +32,8 @@ train:
   # resultion should be divisible by 56 for rfdetr
   resolution: 560
   amp: true
+  # set to auto to resume from outputs/<run_name>/checkpoint.pth if it exists
+  resume: null
 
 output:
   dir: "outputs"
