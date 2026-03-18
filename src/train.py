@@ -1,14 +1,23 @@
 import argparse
+import shutil
 from pathlib import Path
 
 from checkpoints import find_trained_weights, save_deployable_model
 from coco_utils import (
     has_segmentation_annotations,
+    prepare_rfdetr_dataset,
     resolve_class_names,
     validate_coco_annotation_file,
+    validate_rfdetr_category_ids,
 )
 from config import load_yaml, resolve_runtime_config, save_yaml, strip_internal_metadata
-from pipeline import build_model, build_train_kwargs, normalize_task, resolve_output_dir
+from pipeline import (
+    build_model,
+    build_train_kwargs,
+    normalize_task,
+    override_train_dataset_dir,
+    resolve_output_dir,
+)
 from utils import (
     ensure_dir,
     ensure_file,
@@ -77,8 +86,21 @@ def run_training(config_path: str) -> Path:
     model = build_model(task, cfg.get("model"), class_names=class_names)
 
     train_kwargs = build_train_kwargs(cfg, output_dir)
+    prepared_dataset_dir = prepare_rfdetr_dataset(
+        cfg["dataset"],
+        output_dir / "_prepared_rfdetr_dataset",
+    )
+    train_kwargs = override_train_dataset_dir(train_kwargs, prepared_dataset_dir)
     train_kwargs["device"] = device
     logger.info("Train kwargs = %s", train_kwargs)
+    logger.info("Prepared RF-DETR dataset = %s", prepared_dataset_dir)
+
+    try:
+        validate_rfdetr_category_ids(train_ann)
+    except ValueError:
+        logger.info(
+            "Source COCO category ids are not RF-DETR ready; using normalized prepared dataset"
+        )
 
     model.train(**train_kwargs)
 
@@ -104,13 +126,18 @@ def run_training(config_path: str) -> Path:
             "cat_id_to_contig": cat_id_to_contig,
             "contig_to_cat_id": contig_to_cat_id,
             "dataset_root": cfg["dataset"]["root_dir"],
+            "prepared_dataset_root": None,
+            "prepared_dataset_deleted": True,
         },
         output_dir / "label_metadata.json",
     )
 
+    shutil.rmtree(prepared_dataset_dir, ignore_errors=True)
+
     logger.info("Training finished")
     logger.info("Trained weights discovered at %s", trained_weights_path)
     logger.info("Deployable model saved to %s", final_model_path)
+    logger.info("Prepared RF-DETR dataset removed from %s", prepared_dataset_dir)
     logger.info("RF-DETR training artifacts are saved by the library under %s", output_dir)
     return final_model_path
 

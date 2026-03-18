@@ -33,7 +33,7 @@ train:
   amp: true
 
 output:
-  dir: "../outputs"
+  dir: "outputs"
   run_name: "rfdetr_face_detection"
   final_model_name: "rfdetr_face_detection_model.pth"
   save_config_copy: true

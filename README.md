@@ -107,6 +107,10 @@ Important notes:
 
 - `dataset.root_dir` can be relative or absolute.
 - Split paths are resolved relative to `dataset.root_dir`.
+- `output.dir` is resolved relative to the project root, not the `configs/` folder.
+- The training pipeline prepares an internal RF-DETR-ready copy of the dataset automatically and removes it after successful training.
+- COCO annotation ids are normalized to contiguous `0..N-1` during training.
+- Annotation files do not need to be named exactly `_annotations.coco.json` in the source dataset.
 - Detection uses `rf-detr-base.pth` by default.
 - Segmentation uses `rf-detr-seg-preview.pt` by default.
 - The final model file already contains the metadata needed for inference.

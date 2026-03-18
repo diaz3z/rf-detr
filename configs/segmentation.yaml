@@ -35,7 +35,7 @@ train:
   amp: true
 
 output:
-  dir: "../outputs"
+  dir: "outputs"
   run_name: "rfdetr_digioptics-v1"
   final_model_name: "rf_detr_digioptics_model-v1.pth"
   save_config_copy: true

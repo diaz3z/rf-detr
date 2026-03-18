@@ -68,6 +68,12 @@ def build_train_kwargs(cfg: Dict[str, Any], output_dir: Path) -> Dict[str, Any]:
     return kwargs
 
 
+def override_train_dataset_dir(train_kwargs: Dict[str, Any], dataset_dir: str) -> Dict[str, Any]:
+    updated_kwargs = dict(train_kwargs)
+    updated_kwargs["dataset_dir"] = dataset_dir
+    return updated_kwargs
+
+
 def resolve_output_dir(cfg: Dict[str, Any]) -> Path:
     task = normalize_task(cfg.get("task", "detection"))
     return Path(cfg["output"]["dir"]) / cfg["output"].get("run_name", task)

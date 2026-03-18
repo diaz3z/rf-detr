@@ -70,12 +70,19 @@ def _resolve_path(value: Optional[Union[str, Path]], base_dir: Path) -> Optional
     return str(path)
 
 
+def _resolve_project_root(config_dir: Path) -> Path:
+    if config_dir.name.lower() == "configs":
+        return config_dir.parent
+    return config_dir
+
+
 def resolve_runtime_config(
     cfg: Dict[str, Any],
     config_path: Union[str, Path],
 ) -> Dict[str, Any]:
     config_path = Path(config_path).resolve()
     config_dir = config_path.parent
+    project_root = _resolve_project_root(config_dir)
 
     dataset_cfg = cfg.setdefault("dataset", {})
     root_dir = _resolve_path(dataset_cfg.get("root_dir"), config_dir)
@@ -99,7 +106,7 @@ def resolve_runtime_config(
 
     output_cfg = cfg.setdefault("output", {})
     output_dir = output_cfg.get("dir", "./outputs")
-    output_cfg["dir"] = _resolve_path(output_dir, config_dir)
+    output_cfg["dir"] = _resolve_path(output_dir, project_root)
 
     model_cfg = cfg.setdefault("model", {})
     pretrained_weights = model_cfg.get("pretrained_weights")
@@ -109,6 +116,7 @@ def resolve_runtime_config(
     cfg["_meta"] = {
         "config_path": str(config_path),
         "config_dir": str(config_dir),
+        "project_root": str(project_root),
     }
     return cfg
 
