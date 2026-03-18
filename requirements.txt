@@ -8,5 +8,5 @@ supervision
 rfdetr
 tensorboard
 albumentations==2.0.8
-torch
-torhvision
+#torch
+#torhvision

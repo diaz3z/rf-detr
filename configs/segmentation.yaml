@@ -3,7 +3,7 @@ task: segmentation
 seed: 42
 
 dataset:
-  root_dir: "../../person.v1i.coco"
+  root_dir: "D:/OneDrive - Imagevision.ai India Pvt Ltd/Prospects/Digioptics/Dataset/V1/combine/digioptics-dataset-coco-v1"
   train:
     img_dir: "train"
     ann_file: "train/_annotations.coco.json"
@@ -16,8 +16,10 @@ dataset:
 
 model:
   class_names:
-    - faces
-    - face
+    - scalpel
+    - clamp
+    - straight_scissor
+    - curved_scissor
   pretrained_weights: "../rf-detr-seg-preview.pt"
   segmentation_head: true
 
@@ -34,6 +36,6 @@ train:
 
 output:
   dir: "../outputs"
-  run_name: "rfdetr_face_segmentation"
-  final_model_name: "rfdetr_segmentation_model.pth"
+  run_name: "rfdetr_digioptics-v1"
+  final_model_name: "rf_detr_digioptics_model-v1.pth"
   save_config_copy: true

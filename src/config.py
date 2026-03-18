@@ -1,3 +1,5 @@
+import os
+import ntpath
 from pathlib import Path
 from copy import deepcopy
 from typing import Any, Dict, Optional, Union
@@ -24,13 +26,46 @@ def save_yaml(data: Dict[str, Any], path: Union[str, Path]) -> None:
         )
 
 
+def _normalize_path_value(value: Optional[Union[str, Path]]) -> Optional[Union[str, Path]]:
+    if not isinstance(value, str):
+        return value
+
+    normalized = value.strip()
+
+    prefix_chars = {"f", "r", "u", "b"}
+    prefix = ""
+    idx = 0
+    while idx < len(normalized) and normalized[idx].lower() in prefix_chars:
+        prefix += normalized[idx]
+        idx += 1
+
+    if prefix and idx < len(normalized):
+        quote = normalized[idx]
+        if quote in {'"', "'"} and normalized[-1] == quote:
+            normalized = normalized[idx + 1 : -1]
+
+    elif len(normalized) >= 2 and normalized[0] in {'"', "'"} and normalized[-1] == normalized[0]:
+        normalized = normalized[1:-1]
+
+    normalized = os.path.expandvars(os.path.expanduser(normalized.strip()))
+    return normalized
+
+
+def _looks_like_absolute_path(value: Union[str, Path]) -> bool:
+    value = str(value).strip()
+    return Path(value).is_absolute() or ntpath.isabs(value)
+
+
 def _resolve_path(value: Optional[Union[str, Path]], base_dir: Path) -> Optional[str]:
     if value in (None, ""):
         return None
 
+    value = _normalize_path_value(value)
     path = Path(value)
-    if not path.is_absolute():
+    if not _looks_like_absolute_path(value):
         path = (base_dir / path).resolve()
+    else:
+        path = path.resolve()
 
     return str(path)
 
